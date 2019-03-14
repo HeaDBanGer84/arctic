@@ -25,7 +25,10 @@ node {
     "dockerJobs": [
       {"imageName": "bubbleupnpserver", "dockerfilePath": "./bubbleUpnpServer" },
       {"imageName": "denonservice",     "dockerfilePath": "./denonRemoteControl" },
+      {"imageName": "ddnshurricane",    "dockerfilePath": "./dynDnsHurricane" },
+      {"imageName": "dyndnsclient",     "dockerfilePath": "./dynDnsClient" },
       {"imageName": "grav",             "dockerfilePath": "./grav" },
+      {"imageName": "gitrepoutils",     "dockerfilePath": "./gitRepoUtils" },
       {"imageName": "nginx",            "dockerfilePath": "./nginx" },
       {"imageName": "nodered",          "dockerfilePath": "./nodered" },
       {"imageName": "tinkerforge",      "dockerfilePath": "./tinkerforge" },
@@ -54,9 +57,12 @@ node {
   docker.withServer(env.DEFAULT_DOCKER_HOST_CONNECTION, 'default-docker-host-credentials') {
     try {
       stage("Build") {
-        parallel dockerImage.setupBuildTasks {
+        def buildTasks = dockerImage.setupBuildTasks {
           dockerRegistryUser = "${projectSettings.dockerHub.user}"
           buildJobs = projectSettings.dockerJobs
+        }
+        for (task in buildTasks.values()) {
+          task.call()
         }
       }
 
@@ -71,11 +77,14 @@ node {
     }
     finally {
       stage("Clean up") {
-        parallel dockerImage.setupRemoveTasks {
+        def cleanupTasks = dockerImage.setupClenupAllUnusedTask {
           dockerRegistryUser = "${projectSettings.dockerHub.user}"
           buildJobs = projectSettings.dockerJobs
         }
-      }
+        for (task in cleanupTasks.values()) {
+          task.call()
+        }
+      }      
     }
   }
 }
